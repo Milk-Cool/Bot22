@@ -151,16 +151,16 @@ def record():
         global exitnow
         if (key == pynput.keyboard.Key.space
             or key == pynput.keyboard.Key.up
-            or key == pynput.keyboard.KeyCode.from_char('w')):
+            or key == 'w'):
             on_down()
-        elif(key == pynput.keyboard.KeyCode.from_char('\\')):
+        elif(key == '\\'):
             exitnow = True
     def on_release(key):
         if debug:
             print(key)
         if (key == pynput.keyboard.Key.space
             or key == pynput.keyboard.Key.up
-            or key == pynput.keyboard.KeyCode.from_char('w')):
+            or key == 'w'):
             on_up()
     
     listener_mouse = pynput.mouse.Listener(on_click=on_click)
@@ -187,7 +187,7 @@ def replay():
         if debug:
             print(key)
         global exitnow
-        if(key == pynput.keyboard.KeyCode.from_char('\\')):
+        if(key == '\\'):
             exitnow = True
 
     listener_keyboard = pynput.keyboard.Listener(on_press=on_press)
