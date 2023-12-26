@@ -3,6 +3,13 @@ import struct
 import sys
 import pynput
 import time
+import os
+
+debug = False
+try:
+    debug = os.environ["DEBUG"]
+except KeyError:
+    pass
 
 # Just copying some code from pymem's source code...
 
@@ -129,6 +136,8 @@ def record():
         clicks[pm.read_float(addrs[0])] = 0
     
     def on_click(x, y, button, pressed):
+        if debug:
+            print(button)
         if button != pynput.mouse.Button.left:
             return
         if pressed:
@@ -137,6 +146,8 @@ def record():
             on_up()
     
     def on_press(key):
+        if debug:
+            print(key)
         global exitnow
         if (key == pynput.keyboard.Key.space
             or key == pynput.keyboard.Key.up
@@ -145,6 +156,8 @@ def record():
         elif(key == pynput.keyboard.KeyCode.from_char('\\')):
             exitnow = True
     def on_release(key):
+        if debug:
+            print(key)
         if (key == pynput.keyboard.Key.space
             or key == pynput.keyboard.Key.up
             or key == pynput.keyboard.KeyCode.from_char('w')):
@@ -171,6 +184,8 @@ def replay():
     controller = pynput.keyboard.Controller()
 
     def on_press(key):
+        if debug:
+            print(key)
         global exitnow
         if(key == pynput.keyboard.KeyCode.from_char('\\')):
             exitnow = True
