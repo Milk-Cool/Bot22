@@ -142,7 +142,7 @@ def record():
             or key == pynput.keyboard.Key.up
             or key == pynput.keyboard.KeyCode.from_char('w')):
             on_down()
-        elif(key == pynput.keyboard.Key.ctrl_r):
+        elif(key == pynput.keyboard.KeyCode.from_char('\\')):
             exitnow = True
     def on_release(key):
         if (key == pynput.keyboard.Key.space
@@ -172,7 +172,7 @@ def replay():
 
     def on_press(key):
         global exitnow
-        if(key == pynput.keyboard.Key.ctrl_r):
+        if(key == pynput.keyboard.KeyCode.from_char('\\')):
             exitnow = True
 
     listener_keyboard = pynput.keyboard.Listener(on_press=on_press)
