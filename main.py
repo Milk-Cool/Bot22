@@ -102,3 +102,32 @@ while True:
         addrs = addrs_new
     
     print("Found " + str(len(addrs)) + " addresses.")
+
+if(len(addrs) == 0):
+    print("No addresses found, exiting...")
+    exit(0)
+
+def autocomplete():
+    for i in addrs:
+        pm.write_float(i, 999999.0)
+    prompt()
+
+def record():
+    prompt()
+def replay():
+    prompt()
+
+def prompt():
+    print("What would you like me to do?")
+    print("[1] Autocomplete")
+    print("[2] Record")
+    print("[3] Replay")
+    a = input()
+    if(a == "1"): autocomplete()
+    elif(a == "2"): record()
+    elif(a == "3"): replay()
+    else:
+        print("Invalid option, try again.")
+        prompt()
+
+prompt()
