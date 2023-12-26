@@ -1,6 +1,8 @@
 import pymem
 import struct
 import sys
+import pynput
+import time
 
 # Just copying some code from pymem's source code...
 
@@ -112,9 +114,84 @@ def autocomplete():
         pm.write_float(i, 999999.0)
     prompt()
 
+clicks = None
+
 def record():
+    global clicks
+    exitnow = False
+    clicks = {}
+
+    def on_down():
+        global clicks
+        clicks[pm.read_float(addrs[0])] = 1
+    def on_up():
+        global clicks
+        clicks[pm.read_float(addrs[0])] = 0
+    
+    def on_click(x, y, button, pressed):
+        if button != pynput.mouse.Button.left:
+            return
+        if pressed:
+            on_down()
+        else:
+            on_up()
+    
+    def on_press(key):
+        global exitnow
+        if (key == pynput.keyboard.Key.space
+            or key == pynput.keyboard.Key.up
+            or key == pynput.keyboard.KeyCode.from_char('w')):
+            on_down()
+        elif(key == pynput.keyboard.Key.ctrl_r):
+            exitnow = True
+    def on_release(key):
+        if (key == pynput.keyboard.Key.space
+            or key == pynput.keyboard.Key.up
+            or key == pynput.keyboard.KeyCode.from_char('w')):
+            on_up()
+    
+    listener_mouse = pynput.mouse.Listener(on_click=on_click)
+    listener_mouse.start()
+    listener_keyboard = pynput.keyboard.Listener(on_press=on_press, on_release=on_release)
+    listener_keyboard.start()
+    while(True):
+        if(exitnow):
+            listener_mouse.stop()
+            listener_keyboard.stop()
+            break
+        if(pm.read_float(addrs[0]) < 10):
+            clicks = {}
+        time.sleep(0.004)
     prompt()
+
 def replay():
+    global clicks
+    exitnow = False
+
+    controller = pynput.keyboard.Controller()
+
+    def on_press(key):
+        global exitnow
+        if(key == pynput.keyboard.Key.ctrl_r):
+            exitnow = True
+
+    listener_keyboard = pynput.keyboard.Listener(on_press=on_press)
+    listener_keyboard.start()
+    
+    last = 0
+    while(True):
+        if(exitnow):
+            listener_keyboard.stop()
+            break
+        x = pm.read_float(addrs[0])
+        if(x < 10):
+            last = 0
+        else:
+            for i in clicks:
+                if i > last and i < x:
+                    (controller.press if clicks[i] else controller.release)(pynput.keyboard.Key.space)
+            last = x
+        time.sleep(0.004)
     prompt()
 
 def prompt():
