@@ -122,9 +122,10 @@ def autocomplete():
     prompt()
 
 clicks = None
+exitnow = False
 
 def record():
-    global clicks
+    global clicks, exitnow
     exitnow = False
     clicks = {}
 
@@ -178,7 +179,7 @@ def record():
     prompt()
 
 def replay():
-    global clicks
+    global clicks, exitnow
     exitnow = False
 
     controller = pynput.keyboard.Controller()
