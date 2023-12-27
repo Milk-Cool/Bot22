@@ -136,18 +136,19 @@ class Bot:
                                 KEYS[self.clicks[i][1]])
                 last = x
             time.sleep(0.004)
-    
+
     def save(self):
         name = input("Enter the macro name: ")
         f = open("replays/" + name + ".replay.json", "w")
         f.write(json.dumps(self.clicks))
         f.close()
-    
+
     def load(self):
         name = input("Enter the macro name: ")
         f = open("replays/" + name + ".replay.json", "r")
         self.clicks = json.loads(f.read())
         f.close()
+
 
 try:
     os.mkdir("replays")
