@@ -12,6 +12,21 @@ except KeyError:
     pass
 
 
+KEYS = {
+    # Normal
+    "s": pynput.keyboard.Key.space,
+    "u": pynput.keyboard.Key.up,
+    "w": pynput.keyboard.KeyCode.from_char('w'),
+    # Platformer
+    "a": pynput.keyboard.KeyCode.from_char('a'),
+    "d": pynput.keyboard.KeyCode.from_char('d'),
+    "l": pynput.keyboard.Key.left,
+    "r": pynput.keyboard.Key.right,
+    # Mouse
+    "m": pynput.mouse.Button.left
+}
+
+
 class Bot:
     def __init__(self, addrs, mode):
         self.addrs = addrs
@@ -19,11 +34,13 @@ class Bot:
         self.exitnow = False
         self.mode = mode
 
-    def on_down(self):
-        self.clicks[pm.read_float(self.addrs[0])] = 1
+    def on_down(self, key):
+        self.clicks[pm.read_float(self.addrs[0])] = [1, list(
+            KEYS.keys())[list(KEYS.values()).index(key)]]
 
-    def on_up(self):
-        self.clicks[pm.read_float(self.addrs[0])] = 0
+    def on_up(self, key):
+        self.clicks[pm.read_float(self.addrs[0])] = [0, list(
+            KEYS.keys())[list(KEYS.values()).index(key)]]
 
     def on_click(self, x, y, button, pressed):
         if debug:
@@ -31,17 +48,15 @@ class Bot:
         if button != pynput.mouse.Button.left:
             return
         if pressed:
-            self.on_down()
+            self.on_down(button)
         else:
-            self.on_up()
+            self.on_up(button)
 
     def on_press_a(self, key):
         if debug:
             print(key)
-        if (key == pynput.keyboard.Key.space
-            or key == pynput.keyboard.Key.up
-                or key == pynput.keyboard.KeyCode.from_char('w')):
-            self.on_down()
+        if (key in KEYS.values()):
+            self.on_down(key)
         elif (key == pynput.keyboard.KeyCode.from_char('\\')):
             self.exitnow = True
 
@@ -54,10 +69,8 @@ class Bot:
     def on_release(self, key):
         if debug:
             print(key)
-        if (key == pynput.keyboard.Key.space
-            or key == pynput.keyboard.Key.up
-                or key == pynput.keyboard.KeyCode.from_char('w')):
-            self.on_up()
+        if (key in KEYS.values()):
+            self.on_up(key)
 
     def record(self):
         self.exitnow = False
@@ -76,6 +89,8 @@ class Bot:
                 listener_keyboard.stop()
                 break
             x = pm.read_float(self.addrs[0])
+            if (debug):
+                print(x)
             if (x < last):
                 clicks_new = self.clicks.copy()
                 for i in self.clicks:
@@ -90,10 +105,14 @@ class Bot:
         if (debug):
             print(self.clicks)
 
+        print("Actions count:")
+        print(len(self.clicks))
+
     def replay(self):
         self.exitnow = False
 
-        controller = pynput.keyboard.Controller()
+        controller_keyboard = pynput.keyboard.Controller()
+        controller_mouse = pynput.keyboard.Controller()
 
         listener_keyboard = pynput.keyboard.Listener(on_press=self.on_press_b)
         listener_keyboard.start()
@@ -109,8 +128,12 @@ class Bot:
             else:
                 for i in self.clicks:
                     if i > last and i <= x:
-                        (controller.press if self.clicks[i] else controller.release)(
-                            pynput.keyboard.Key.space)
+                        if self.clicks[i][1] == "m":
+                            (controller_mouse.press if self.clicks[i][0] else controller_mouse.release)(
+                                pynput.mouse.Button.left)
+                        else:
+                            (controller_keyboard.press if self.clicks[i][0] else controller_keyboard.release)(
+                                KEYS[self.clicks[i][1]])
                 last = x
             time.sleep(0.004)
 
@@ -207,7 +230,7 @@ def prompt_a():
     global method
     print("What would you like to use?")
     print("[1] X pos (Practice Mode, Autocomplete)")
-    print("[2] Time (Platformer Mode, not yet supported)")
+    print("[2] Time (Platformer Mode)")
     a = input()
     if (a == "1"):
         method = "x"
