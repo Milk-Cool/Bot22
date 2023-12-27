@@ -11,6 +11,104 @@ try:
 except KeyError:
     pass
 
+class Bot:
+    def __init__(self, addrs, mode):
+        self.addrs = addrs
+        self.clicks = {}
+        self.exitnow = False
+        self.mode = mode
+    
+    def on_down(self):
+        self.clicks[pm.read_float(self.addrs[0])] = 1
+    def on_up(self):
+        self.clicks[pm.read_float(self.addrs[0])] = 0
+    
+    def on_click(self, x, y, button, pressed):
+        if debug:
+            print(button)
+        if button != pynput.mouse.Button.left:
+            return
+        if pressed:
+            self.on_down()
+        else:
+            self.on_up()
+    
+    def on_press_a(self, key):
+        if debug:
+            print(key)
+        if (key == pynput.keyboard.Key.space
+            or key == pynput.keyboard.Key.up
+            or key == pynput.keyboard.KeyCode.from_char('w')):
+            self.on_down()
+        elif(key == pynput.keyboard.KeyCode.from_char('\\')):
+            self.exitnow = True
+    
+    def on_press_b(self, key):
+        if debug:
+            print(key)
+        if(key == pynput.keyboard.KeyCode.from_char('\\')):
+            self.exitnow = True
+    
+    def on_release(self, key):
+        if debug:
+            print(key)
+        if (key == pynput.keyboard.Key.space
+            or key == pynput.keyboard.Key.up
+            or key == pynput.keyboard.KeyCode.from_char('w')):
+            self.on_up()
+    
+    def record(self):
+        self.exitnow = False
+        self.clicks = {}
+
+        listener_mouse = pynput.mouse.Listener(on_click=self.on_click)
+        listener_mouse.start()
+        listener_keyboard = pynput.keyboard.Listener(on_press=self.on_press_a, on_release=self.on_release)
+        listener_keyboard.start()
+
+        last = 0
+        while(True):
+            if(self.exitnow):
+                listener_mouse.stop()
+                listener_keyboard.stop()
+                break
+            x = pm.read_float(self.addrs[0])
+            if(x < last):
+                clicks_new = self.clicks.copy()
+                for i in self.clicks:
+                    print(i, type(i), x, type(x))
+                    if i > x:
+                        clicks_new.pop(i)
+                self.clicks = clicks_new.copy()
+            last = x
+            time.sleep(0.004)
+        
+        if(debug):
+            print(self.clicks)
+    
+    def replay(self):
+        self.exitnow = False
+
+        controller = pynput.keyboard.Controller()
+
+        listener_keyboard = pynput.keyboard.Listener(on_press=self.on_press_b)
+        listener_keyboard.start()
+
+        last = 0
+        while(True):
+            if(self.exitnow):
+                listener_keyboard.stop()
+                break
+            x = pm.read_float(self.addrs[0])
+            if(x < 10):
+                last = 0
+            else:
+                for i in self.clicks:
+                    if i > last and i <= x:
+                        (controller.press if self.clicks[i] else controller.release)(pynput.keyboard.Key.space)
+                last = x
+            time.sleep(0.004)
+
 # Just copying some code from pymem's source code...
 
 def scan_float_range_page(handle, address, fmin, fmax):
@@ -89,15 +187,34 @@ except:
 if pm == None:
     exit(1)
 
+if debug:
+    print(pm)
+
+method = "x"
+
+def prompt_a():
+    global method
+    print("What would you like to use?")
+    print("[1] X pos (Practice Mode, Autocomplete)")
+    print("[2] Time (Platformer Mode)")
+    a = input()
+    if(a == "1"): method = "x"
+    elif(a == "2"): method = "t"
+    else:
+        print("Invalid option, try again.")
+        prompt_a()
+
+prompt_a()
+
 addrs = []
 
 while True:
-    xpos = input("Enter X pos or press Enter to finish: ")
+    xpos = input("Enter X pos or press Enter to finish: " if method == "x" else "Enter time or press Enter to finish: ")
     if xpos == "":
         break
-    xpos = int(xpos)
-    xmin = float(xpos - 1)
-    xmax = float(xpos + 1)
+    xpos = float(xpos)
+    xmin = float(xpos - (1 if method == "x" else 0.02))
+    xmax = float(xpos + (1 if method == "x" else 0.02))
     print("Please wait...")
 
     if(len(addrs) == 0):
@@ -116,111 +233,38 @@ if(len(addrs) == 0):
     print("No addresses found, exiting...")
     exit(0)
 
+bot = Bot(addrs, method)
+
 def autocomplete():
     for i in addrs:
-        pm.write_float(i, 999999.0)
-    prompt()
+        try:
+            pm.write_float(i, 999999.0)
+        except:
+            print("Failed to write to address {}".format(i))
+    prompt_b()
 
-clicks = None
-exitnow = False
-
-def record():
-    global clicks, exitnow
-    exitnow = False
-    clicks = {}
-
-    def on_down():
-        global clicks
-        clicks[pm.read_float(addrs[0])] = 1
-    def on_up():
-        global clicks
-        clicks[pm.read_float(addrs[0])] = 0
-    
-    def on_click(x, y, button, pressed):
-        if debug:
-            print(button)
-        if button != pynput.mouse.Button.left:
-            return
-        if pressed:
-            on_down()
-        else:
-            on_up()
-    
-    def on_press(key):
-        if debug:
-            print(key)
-        global exitnow
-        if (key == pynput.keyboard.Key.space
-            or key == pynput.keyboard.Key.up
-            or key == pynput.keyboard.KeyCode.from_char('w')):
-            on_down()
-        elif(key == pynput.keyboard.KeyCode.from_char('\\')):
-            exitnow = True
-    def on_release(key):
-        if debug:
-            print(key)
-        if (key == pynput.keyboard.Key.space
-            or key == pynput.keyboard.Key.up
-            or key == pynput.keyboard.KeyCode.from_char('w')):
-            on_up()
-    
-    listener_mouse = pynput.mouse.Listener(on_click=on_click)
-    listener_mouse.start()
-    listener_keyboard = pynput.keyboard.Listener(on_press=on_press, on_release=on_release)
-    listener_keyboard.start()
-    while(True):
-        if(exitnow):
-            listener_mouse.stop()
-            listener_keyboard.stop()
-            break
-        if(pm.read_float(addrs[0]) < 10):
-            clicks = {}
-        time.sleep(0.004)
-    prompt()
-
-def replay():
-    global clicks, exitnow
-    exitnow = False
-
-    controller = pynput.keyboard.Controller()
-
-    def on_press(key):
-        if debug:
-            print(key)
-        global exitnow
-        if(key == pynput.keyboard.KeyCode.from_char('\\')):
-            exitnow = True
-
-    listener_keyboard = pynput.keyboard.Listener(on_press=on_press)
-    listener_keyboard.start()
-    
-    last = 0
-    while(True):
-        if(exitnow):
-            listener_keyboard.stop()
-            break
-        x = pm.read_float(addrs[0])
-        if(x < 10):
-            last = 0
-        else:
-            for i in clicks:
-                if i > last and i < x:
-                    (controller.press if clicks[i] else controller.release)(pynput.keyboard.Key.space)
-            last = x
-        time.sleep(0.004)
-    prompt()
-
-def prompt():
+def prompt_b():
     print("What would you like me to do?")
-    print("[1] Autocomplete")
-    print("[2] Record")
-    print("[3] Replay")
-    a = input()
-    if(a == "1"): autocomplete()
-    elif(a == "2"): record()
-    elif(a == "3"): replay()
-    else:
-        print("Invalid option, try again.")
-        prompt()
+    if method == "x":
+        print("[1] Autocomplete")
+        print("[2] Record")
+        print("[3] Replay")
+        a = input()
+        if(a == "1"): autocomplete()
+        elif(a == "2"): bot.record()
+        elif(a == "3"): bot.replay()
+        else:
+            print("Invalid option, try again.")
+            prompt_b()
+    elif method == "t":
+        print("[1] Record")
+        print("[2] Replay")
+        a = input()
+        if(a == "1"): bot.record()
+        elif(a == "2"): bot.replay()
+        else:
+            print("Invalid option, try again.")
+            prompt_b()
 
-prompt()
+while True:
+    prompt_b()
