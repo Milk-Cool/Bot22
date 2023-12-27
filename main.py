@@ -4,6 +4,7 @@ import sys
 import pynput
 import time
 import os
+import json
 
 debug = False
 try:
@@ -35,11 +36,11 @@ class Bot:
         self.mode = mode
 
     def on_down(self, key):
-        self.clicks[pm.read_float(self.addrs[0])] = [1, list(
+        self.clicks[str(pm.read_float(self.addrs[0]))] = [1, list(
             KEYS.keys())[list(KEYS.values()).index(key)]]
 
     def on_up(self, key):
-        self.clicks[pm.read_float(self.addrs[0])] = [0, list(
+        self.clicks[str(pm.read_float(self.addrs[0]))] = [0, list(
             KEYS.keys())[list(KEYS.values()).index(key)]]
 
     def on_click(self, x, y, button, pressed):
@@ -94,9 +95,7 @@ class Bot:
             if (x < last):
                 clicks_new = self.clicks.copy()
                 for i in self.clicks:
-                    if (debug):
-                        print(i, type(i), x, type(x))
-                    if i > x:
+                    if float(i) > x:
                         clicks_new.pop(i)
                 self.clicks = clicks_new.copy()
             last = x
@@ -112,7 +111,7 @@ class Bot:
         self.exitnow = False
 
         controller_keyboard = pynput.keyboard.Controller()
-        controller_mouse = pynput.keyboard.Controller()
+        controller_mouse = pynput.mouse.Controller()
 
         listener_keyboard = pynput.keyboard.Listener(on_press=self.on_press_b)
         listener_keyboard.start()
@@ -127,7 +126,8 @@ class Bot:
                 last = 0
             else:
                 for i in self.clicks:
-                    if i > last and i <= x:
+                    fi = float(i)
+                    if fi > last and fi <= x:
                         if self.clicks[i][1] == "m":
                             (controller_mouse.press if self.clicks[i][0] else controller_mouse.release)(
                                 pynput.mouse.Button.left)
@@ -136,6 +136,23 @@ class Bot:
                                 KEYS[self.clicks[i][1]])
                 last = x
             time.sleep(0.004)
+    
+    def save(self):
+        name = input("Enter the macro name: ")
+        f = open("replays/" + name + ".replay.json", "w")
+        f.write(json.dumps(self.clicks))
+        f.close()
+    
+    def load(self):
+        name = input("Enter the macro name: ")
+        f = open("replays/" + name + ".replay.json", "r")
+        self.clicks = json.loads(f.read())
+        f.close()
+
+try:
+    os.mkdir("replays")
+except:
+    pass
 
 # Just copying some code from pymem's source code...
 
@@ -289,6 +306,8 @@ def prompt_b():
         print("[1] Autocomplete")
         print("[2] Record")
         print("[3] Replay")
+        print("[4] Save")
+        print("[5] Load")
         a = input()
         if (a == "1"):
             autocomplete()
@@ -296,17 +315,27 @@ def prompt_b():
             bot.record()
         elif (a == "3"):
             bot.replay()
+        elif (a == "4"):
+            bot.save()
+        elif (a == "5"):
+            bot.load()
         else:
             print("Invalid option, try again.")
             prompt_b()
     elif method == "t":
         print("[1] Record")
         print("[2] Replay")
+        print("[3] Save")
+        print("[4] Load")
         a = input()
         if (a == "1"):
             bot.record()
         elif (a == "2"):
             bot.replay()
+        elif (a == "3"):
+            bot.save()
+        elif (a == "4"):
+            bot.load()
         else:
             print("Invalid option, try again.")
             prompt_b()
