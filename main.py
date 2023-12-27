@@ -11,18 +11,20 @@ try:
 except KeyError:
     pass
 
+
 class Bot:
     def __init__(self, addrs, mode):
         self.addrs = addrs
         self.clicks = {}
         self.exitnow = False
         self.mode = mode
-    
+
     def on_down(self):
         self.clicks[pm.read_float(self.addrs[0])] = 1
+
     def on_up(self):
         self.clicks[pm.read_float(self.addrs[0])] = 0
-    
+
     def on_click(self, x, y, button, pressed):
         if debug:
             print(button)
@@ -32,60 +34,62 @@ class Bot:
             self.on_down()
         else:
             self.on_up()
-    
+
     def on_press_a(self, key):
         if debug:
             print(key)
         if (key == pynput.keyboard.Key.space
             or key == pynput.keyboard.Key.up
-            or key == pynput.keyboard.KeyCode.from_char('w')):
+                or key == pynput.keyboard.KeyCode.from_char('w')):
             self.on_down()
-        elif(key == pynput.keyboard.KeyCode.from_char('\\')):
+        elif (key == pynput.keyboard.KeyCode.from_char('\\')):
             self.exitnow = True
-    
+
     def on_press_b(self, key):
         if debug:
             print(key)
-        if(key == pynput.keyboard.KeyCode.from_char('\\')):
+        if (key == pynput.keyboard.KeyCode.from_char('\\')):
             self.exitnow = True
-    
+
     def on_release(self, key):
         if debug:
             print(key)
         if (key == pynput.keyboard.Key.space
             or key == pynput.keyboard.Key.up
-            or key == pynput.keyboard.KeyCode.from_char('w')):
+                or key == pynput.keyboard.KeyCode.from_char('w')):
             self.on_up()
-    
+
     def record(self):
         self.exitnow = False
         self.clicks = {}
 
         listener_mouse = pynput.mouse.Listener(on_click=self.on_click)
         listener_mouse.start()
-        listener_keyboard = pynput.keyboard.Listener(on_press=self.on_press_a, on_release=self.on_release)
+        listener_keyboard = pynput.keyboard.Listener(
+            on_press=self.on_press_a, on_release=self.on_release)
         listener_keyboard.start()
 
         last = 0
-        while(True):
-            if(self.exitnow):
+        while (True):
+            if (self.exitnow):
                 listener_mouse.stop()
                 listener_keyboard.stop()
                 break
             x = pm.read_float(self.addrs[0])
-            if(x < last):
+            if (x < last):
                 clicks_new = self.clicks.copy()
                 for i in self.clicks:
-                    print(i, type(i), x, type(x))
+                    if (debug):
+                        print(i, type(i), x, type(x))
                     if i > x:
                         clicks_new.pop(i)
                 self.clicks = clicks_new.copy()
             last = x
             time.sleep(0.004)
-        
-        if(debug):
+
+        if (debug):
             print(self.clicks)
-    
+
     def replay(self):
         self.exitnow = False
 
@@ -95,21 +99,23 @@ class Bot:
         listener_keyboard.start()
 
         last = 0
-        while(True):
-            if(self.exitnow):
+        while (True):
+            if (self.exitnow):
                 listener_keyboard.stop()
                 break
             x = pm.read_float(self.addrs[0])
-            if(x < 10):
+            if (x < 10):
                 last = 0
             else:
                 for i in self.clicks:
                     if i > last and i <= x:
-                        (controller.press if self.clicks[i] else controller.release)(pynput.keyboard.Key.space)
+                        (controller.press if self.clicks[i] else controller.release)(
+                            pynput.keyboard.Key.space)
                 last = x
             time.sleep(0.004)
 
 # Just copying some code from pymem's source code...
+
 
 def scan_float_range_page(handle, address, fmin, fmax):
     try:
@@ -134,13 +140,14 @@ def scan_float_range_page(handle, address, fmin, fmax):
 
     for i in range(len(page_bytes) - 3):
         try:
-            f = struct.unpack("<f", page_bytes[i : i + 4])[0]
+            f = struct.unpack("<f", page_bytes[i: i + 4])[0]
             if fmin <= f <= fmax:
                 found.append(address + i)
         except struct.error:
             pass
 
     return next_region, found
+
 
 def scan_float_range_module(handle, module, fmin, fmax):
     address = module.lpBaseOfDll
@@ -149,11 +156,13 @@ def scan_float_range_module(handle, module, fmin, fmax):
     found = []
 
     while address < module.lpBaseOfDll + size:
-        address, found_in_page = scan_float_range_page(handle, address, fmin, fmax)
+        address, found_in_page = scan_float_range_page(
+            handle, address, fmin, fmax)
         if found_in_page is not None:
             found.extend(found_in_page)
 
     return found
+
 
 def scan_float_range(handle, fmin, fmax):
     found = []
@@ -175,6 +184,7 @@ def scan_float_range(handle, fmin, fmax):
 
 # Now the actual code
 
+
 input("Open Geometry Dash and press enter...")
 
 pm = None
@@ -192,24 +202,29 @@ if debug:
 
 method = "x"
 
+
 def prompt_a():
     global method
     print("What would you like to use?")
     print("[1] X pos (Practice Mode, Autocomplete)")
-    print("[2] Time (Platformer Mode)")
+    print("[2] Time (Platformer Mode, not yet supported)")
     a = input()
-    if(a == "1"): method = "x"
-    elif(a == "2"): method = "t"
+    if (a == "1"):
+        method = "x"
+    elif (a == "2"):
+        method = "t"
     else:
         print("Invalid option, try again.")
         prompt_a()
+
 
 prompt_a()
 
 addrs = []
 
 while True:
-    xpos = input("Enter X pos or press Enter to finish: " if method == "x" else "Enter time or press Enter to finish: ")
+    xpos = input("Enter X pos or press Enter to finish: " if method ==
+                 "x" else "Enter time or press Enter to finish: ")
     if xpos == "":
         break
     xpos = float(xpos)
@@ -217,7 +232,7 @@ while True:
     xmax = float(xpos + (1 if method == "x" else 0.02))
     print("Please wait...")
 
-    if(len(addrs) == 0):
+    if (len(addrs) == 0):
         addrs = scan_float_range(pm.process_handle, xmin, xmax)
     else:
         addrs_new = addrs
@@ -226,14 +241,15 @@ while True:
             if not (xmin <= f <= xmax):
                 addrs_new.remove(addr)
         addrs = addrs_new
-    
+
     print("Found " + str(len(addrs)) + " addresses.")
 
-if(len(addrs) == 0):
+if (len(addrs) == 0):
     print("No addresses found, exiting...")
     exit(0)
 
 bot = Bot(addrs, method)
+
 
 def autocomplete():
     for i in addrs:
@@ -243,6 +259,7 @@ def autocomplete():
             print("Failed to write to address {}".format(i))
     prompt_b()
 
+
 def prompt_b():
     print("What would you like me to do?")
     if method == "x":
@@ -250,9 +267,12 @@ def prompt_b():
         print("[2] Record")
         print("[3] Replay")
         a = input()
-        if(a == "1"): autocomplete()
-        elif(a == "2"): bot.record()
-        elif(a == "3"): bot.replay()
+        if (a == "1"):
+            autocomplete()
+        elif (a == "2"):
+            bot.record()
+        elif (a == "3"):
+            bot.replay()
         else:
             print("Invalid option, try again.")
             prompt_b()
@@ -260,11 +280,14 @@ def prompt_b():
         print("[1] Record")
         print("[2] Replay")
         a = input()
-        if(a == "1"): bot.record()
-        elif(a == "2"): bot.replay()
+        if (a == "1"):
+            bot.record()
+        elif (a == "2"):
+            bot.replay()
         else:
             print("Invalid option, try again.")
             prompt_b()
+
 
 while True:
     prompt_b()
